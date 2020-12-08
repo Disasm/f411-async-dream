@@ -21,7 +21,6 @@ struct InterruptObject {
     nr: Interrupt,
     waker: Mutex<Cell<Option<Waker>>>,
     taken: AtomicBool,
-    event: AtomicBool,
 }
 
 impl InterruptObject {
@@ -30,14 +29,11 @@ impl InterruptObject {
             nr,
             waker: Mutex::new(Cell::new(None)),
             taken: AtomicBool::new(false),
-            event: AtomicBool::new(false),
         }
     }
 
     pub fn handle_interrupt(&self) {
         NVIC::mask(self.nr);
-
-        self.event.store(true, Ordering::SeqCst);
 
         // We are already in the interrupt context, construct cs in a dirty way
         let cs = unsafe { core::mem::transmute(()) };
@@ -76,10 +72,10 @@ impl Future for InterruptHandle {
     type Output = ();
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        if self.obj.event.swap(false, Ordering::SeqCst) {
+        let obj = self.get_mut().obj;
+        if NVIC::is_pending(obj.nr) {
             Poll::Ready(())
         } else {
-            let obj = self.get_mut().obj;
             obj.arm(cx.waker().clone());
             unsafe { NVIC::unmask(obj.nr) };
             Poll::Pending
