@@ -66,6 +66,10 @@ impl InterruptHandle {
     pub async fn wait(&mut self) {
         self.await
     }
+
+    pub fn unpend(&self) {
+        NVIC::unpend(self.obj.nr)
+    }
 }
 
 impl Future for InterruptHandle {
@@ -132,7 +136,7 @@ fn main() -> ! {
                 //cortex_m::asm::delay(16);
 
                 // At this point TIM2 IRQ should be de-asserted
-                NVIC::unpend(Interrupt::TIM2);
+                tim2_irq.unpend();
 
                 rprintln!("tim2_int handled");
                 led.toggle().ok();
