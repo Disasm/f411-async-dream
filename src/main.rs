@@ -135,7 +135,8 @@ fn main() -> ! {
                 // Optionally we need this to synchronize with the slower bus
                 //cortex_m::asm::delay(16);
 
-                // At this point TIM2 IRQ should be de-asserted
+                // At this point TIM2 IRQ should be de-asserted. If we unpend
+                // the IRQ, it will not become pending instantly.
                 tim2_irq.unpend();
 
                 rprintln!("tim2_int handled");
